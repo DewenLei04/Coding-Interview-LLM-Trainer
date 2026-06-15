@@ -49,7 +49,7 @@ Step through each input element and write down every state change. The first div
 Guard the update so stale values outside the active range are ignored.
 
 ## Complexity
-The intended optimized approach is usually linear time with auxiliary space proportional to tracked state."""
+The intended optimized approach is usually O(n) time with O(k) auxiliary space for tracked state."""
         if "Mode: Progressive Hint" in prompt:
             return """## Hint
 Focus on what information must be remembered between iterations, and what information becomes invalid as the search window moves.
@@ -88,7 +88,7 @@ def solve():
 The exact implementation depends on the problem constraints and examples.
 
 ## Complexity
-State the final time and space complexity after choosing the concrete algorithm.
+After choosing the concrete algorithm, state the final Big-O costs, such as O(n) time and O(n) space for a single-pass stack solution.
 
 ## Edge Cases
 Test empty input, one-element input, repeated values, and boundary-size cases."""

@@ -8,7 +8,8 @@ def test_eval_seed_dataset() -> None:
     metrics = evaluate(Path("data/seed_examples.jsonl"))
 
     assert metrics["valid_rows"] >= 5
-    assert metrics["section_format_accuracy"] == 1.0
+    assert metrics["generated_rule_accuracy"] == 1.0
+    assert metrics["ideal_response_rule_accuracy"] == 1.0
 
 
 def test_benchmark_mock_mode() -> None:

@@ -122,6 +122,7 @@ Useful environment variables:
 ## Dataset
 
 Dataset examples live in `data/seed_examples.jsonl`. The schema is documented in `data/schema.md`.
+Golden evaluation examples live in `data/golden_eval.jsonl` and should stay separate from examples used for training or fine-tuning.
 
 Each example contains:
 
@@ -132,6 +133,12 @@ Each example contains:
 The PRD target is at least 100 instruction examples. This MVP includes seed examples and the structure needed to grow the dataset.
 
 ## Evaluation and Benchmarking
+
+Validate dataset JSONL, schema, duplicate IDs, mode coverage, and PRD-style response rules:
+
+```bash
+python3 -m coding_interview_trainer.eval.validate_dataset data/seed_examples.jsonl
+```
 
 Run the mock-mode evaluator:
 
@@ -144,6 +151,18 @@ Run the benchmark:
 ```bash
 python3 -m coding_interview_trainer.benchmarks.benchmark_inference --iterations 3
 ```
+
+The validator checks:
+
+- Valid JSONL rows.
+- Required `request` and `ideal_response` fields.
+- Pydantic request schema validity.
+- Duplicate example IDs.
+- Coverage across all five assistance modes.
+- Required markdown sections per mode.
+- Hint Mode and Bug Diagnosis code-leak rules.
+- Full Solution code presence.
+- Complexity notation where required.
 
 ## Tests
 
