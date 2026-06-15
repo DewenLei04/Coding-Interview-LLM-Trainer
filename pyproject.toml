@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coding-interview-llm-trainer"
+version = "0.1.0"
+description = "Local LLM-powered coding interview coach MVP."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "streamlit>=1.36",
+  "requests>=2.32",
+]
+
+[project.optional-dependencies]
+llm = [
+  "transformers>=4.43",
+  "accelerate>=0.33",
+  "torch>=2.3",
+]
+gpu = [
+  "coding-interview-llm-trainer[llm]",
+  "bitsandbytes>=0.43",
+]
+dev = ["pytest>=8.2", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
