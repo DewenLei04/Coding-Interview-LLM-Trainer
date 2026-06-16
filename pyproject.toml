@@ -26,6 +26,11 @@ gpu = [
   "coding-interview-llm-trainer[llm]",
   "bitsandbytes>=0.43",
 ]
+train = [
+  "coding-interview-llm-trainer[gpu]",
+  "peft>=0.12",
+  "datasets>=2.20",
+]
 dev = ["pytest>=8.2", "httpx>=0.27"]
 
 [tool.setuptools.packages.find]

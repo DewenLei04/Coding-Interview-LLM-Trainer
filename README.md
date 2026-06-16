@@ -161,6 +161,68 @@ python3 -m coding_interview_trainer.eval.run_baseline data/golden_eval.jsonl
 This writes per-example predictions and a summary under `results/baselines/`.
 Use the same command with `CIT_BACKEND=transformers` and `CIT_MODEL_NAME=...` for Qwen baseline runs.
 
+## QLoRA Fine-Tuning
+
+Install training dependencies:
+
+```bash
+python3 -m pip install -e ".[train]"
+```
+
+The trainer reads JSONL examples with `request` and `ideal_response`, renders the same tutor prompt used by the API, and trains only on the assistant response tokens.
+
+First validate the training data:
+
+```bash
+python3 -m coding_interview_trainer.eval.validate_dataset data/seed_examples.jsonl
+```
+
+Run QLoRA fine-tuning on the 3B fallback model:
+
+```bash
+HF_HUB_DISABLE_XET=1 \
+python3 -m coding_interview_trainer.training.train_qlora \
+  --dataset data/seed_examples.jsonl \
+  --base-model Qwen/Qwen2.5-Coder-3B-Instruct \
+  --output-dir models/qwen25-coder-3b-interview-lora
+```
+
+The trainer refuses very small datasets by default. For a smoke test only:
+
+```bash
+HF_HUB_DISABLE_XET=1 \
+python3 -m coding_interview_trainer.training.train_qlora \
+  --dataset data/seed_examples.jsonl \
+  --base-model Qwen/Qwen2.5-Coder-3B-Instruct \
+  --output-dir models/qwen25-coder-3b-interview-lora-smoke \
+  --allow-small-dataset
+```
+
+Run inference with a trained adapter:
+
+```bash
+HF_HUB_DISABLE_XET=1 \
+CIT_BACKEND=transformers \
+CIT_MODEL_NAME=Qwen/Qwen2.5-Coder-3B-Instruct \
+CIT_ADAPTER_PATH=models/qwen25-coder-3b-interview-lora \
+CIT_LOAD_IN_4BIT=true \
+uvicorn coding_interview_trainer.api.main:app --reload
+```
+
+Compare fine-tuned output against the baseline:
+
+```bash
+HF_HUB_DISABLE_XET=1 \
+CIT_BACKEND=transformers \
+CIT_MODEL_NAME=Qwen/Qwen2.5-Coder-3B-Instruct \
+CIT_ADAPTER_PATH=models/qwen25-coder-3b-interview-lora \
+CIT_LOAD_IN_4BIT=true \
+python3 -m coding_interview_trainer.eval.run_baseline \
+  data/golden_eval.jsonl \
+  --output-dir results/baselines \
+  --run-name qwen25_coder_3b_lora_golden10_700tok
+```
+
 The validator checks:
 
 - Valid JSONL rows.

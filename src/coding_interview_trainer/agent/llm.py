@@ -11,6 +11,7 @@ FALLBACK_MODEL = "Qwen/Qwen2.5-Coder-3B-Instruct"
 @dataclass(frozen=True)
 class GenerationConfig:
     model_name: str = DEFAULT_MODEL
+    adapter_path: str | None = None
     max_new_tokens: int = 700
     temperature: float = 0.2
     top_p: float = 0.9
@@ -142,6 +143,10 @@ class TransformersLLMBackend(LLMBackend):
             trust_remote_code=True,
             quantization_config=quantization_config,
         )
+        if self.config.adapter_path:
+            from peft import PeftModel
+
+            model = PeftModel.from_pretrained(model, self.config.adapter_path)
         if tokenizer.pad_token_id is None:
             tokenizer.pad_token = tokenizer.eos_token
         self._model = model
@@ -204,6 +209,7 @@ def make_backend() -> LLMBackend:
         return TransformersLLMBackend(
             GenerationConfig(
                 model_name=model_name,
+                adapter_path=os.getenv("CIT_ADAPTER_PATH") or None,
                 max_new_tokens=int(os.getenv("CIT_MAX_NEW_TOKENS", "700")),
                 temperature=float(os.getenv("CIT_TEMPERATURE", "0.2")),
                 top_p=float(os.getenv("CIT_TOP_P", "0.9")),
