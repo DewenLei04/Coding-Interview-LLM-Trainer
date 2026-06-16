@@ -152,6 +152,15 @@ Run the benchmark:
 python3 -m coding_interview_trainer.benchmarks.benchmark_inference --iterations 3
 ```
 
+Run a persistent baseline inference pass:
+
+```bash
+python3 -m coding_interview_trainer.eval.run_baseline data/golden_eval.jsonl
+```
+
+This writes per-example predictions and a summary under `results/baselines/`.
+Use the same command with `CIT_BACKEND=transformers` and `CIT_MODEL_NAME=...` for Qwen baseline runs.
+
 The validator checks:
 
 - Valid JSONL rows.

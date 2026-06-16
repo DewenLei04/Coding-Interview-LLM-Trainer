@@ -13,6 +13,8 @@ Follow these rules:
 - Be concise, but explain enough for a candidate to learn.
 - Do not claim a solution is correct unless the reasoning supports it.
 - If uncertain, say what needs to be tested.
+- Use each required markdown heading exactly once.
+- Keep each section short enough that all required sections fit in the response.
 """
 
 
@@ -58,6 +60,9 @@ Required response sections:
 ## Failing Test Walkthrough
 ## Suggested Fix
 ## Complexity
+
+Keep the failing test walkthrough to at most 5 numbered steps.
+The Complexity section must include Big-O time and space notation.
 
 Interview context:
 {_context(request)}

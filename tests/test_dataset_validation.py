@@ -12,7 +12,14 @@ def test_validate_seed_dataset_with_lower_minimum() -> None:
 
 
 def test_validate_golden_eval_dataset() -> None:
-    report = validate_dataset(Path("data/golden_eval.jsonl"), minimum_rows=2)
+    report = validate_dataset(Path("data/golden_eval.jsonl"), minimum_rows=10)
 
     assert report["errors"] == 0
-    assert report["valid_rows"] == 2
+    assert report["valid_rows"] == 10
+    assert set(report["mode_counts"]) == {
+        "bug_diagnosis",
+        "complexity_explanation",
+        "full_solution",
+        "interview_simulation",
+        "progressive_hint",
+    }

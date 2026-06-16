@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
 import os
 
@@ -114,14 +115,15 @@ class TransformersLLMBackend(LLMBackend):
     def __init__(self, config: GenerationConfig) -> None:
         self.config = config
         self.model_name = config.model_name
-        self._pipeline = None
+        self._model = None
+        self._tokenizer = None
 
-    def _load_pipeline(self):
-        if self._pipeline is not None:
-            return self._pipeline
+    def _load_model_and_tokenizer(self):
+        if self._model is not None and self._tokenizer is not None:
+            return self._model, self._tokenizer
 
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
         quantization_config = None
         if self.config.load_in_4bit:
@@ -136,23 +138,63 @@ class TransformersLLMBackend(LLMBackend):
         model = AutoModelForCausalLM.from_pretrained(
             self.config.model_name,
             device_map="auto",
+            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             trust_remote_code=True,
             quantization_config=quantization_config,
         )
-        self._pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
-        return self._pipeline
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        self._model = model
+        self._tokenizer = tokenizer
+        return self._model, self._tokenizer
 
     def generate(self, prompt: str) -> str:
-        generator = self._load_pipeline()
-        result = generator(
-            prompt,
-            max_new_tokens=self.config.max_new_tokens,
-            temperature=self.config.temperature,
-            top_p=self.config.top_p,
-            do_sample=self.config.temperature > 0,
-            return_full_text=False,
+        import torch
+
+        model, tokenizer = self._load_model_and_tokenizer()
+        messages = [{"role": "user", "content": prompt}]
+        encoded = tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            return_dict=True,
         )
-        return result[0]["generated_text"].strip()
+        if isinstance(encoded, Mapping):
+            input_ids = encoded["input_ids"].to(model.device)
+            attention_mask = encoded.get("attention_mask")
+            if attention_mask is None:
+                attention_mask = torch.ones_like(input_ids, device=model.device)
+            else:
+                attention_mask = attention_mask.to(model.device)
+        else:
+            input_ids = encoded.to(model.device)
+            attention_mask = torch.ones_like(input_ids, device=model.device)
+        generation_kwargs = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "max_new_tokens": self.config.max_new_tokens,
+            "pad_token_id": tokenizer.pad_token_id,
+            "eos_token_id": tokenizer.eos_token_id,
+        }
+        if self.config.temperature > 0:
+            generation_kwargs.update(
+                {
+                    "do_sample": True,
+                    "temperature": self.config.temperature,
+                    "top_p": self.config.top_p,
+                }
+            )
+        else:
+            generation_kwargs["do_sample"] = False
+
+        with torch.inference_mode():
+            generated = model.generate(**generation_kwargs)
+        new_tokens = generated[0, input_ids.shape[-1] :]
+        return tokenizer.decode(
+            new_tokens,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )
 
 
 def make_backend() -> LLMBackend:
