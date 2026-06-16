@@ -15,8 +15,9 @@ This repo contains the first MVP scaffold:
 - JSONL dataset schema and seed examples.
 - Evaluation and benchmark scripts.
 - Unit/API tests for the core behavior.
+- QLoRA fine-tuning pipeline and LoRA adapter loading.
 
-Fine-tuning is intentionally not implemented in this pass. The package structure leaves room for QLoRA training modules later.
+The trained LoRA adapter is expected at `models/qwen25-coder-3b-interview-lora` when using the default fine-tuned inference commands.
 
 ## Assistance Modes
 
@@ -89,6 +90,58 @@ Set a custom API URL if needed:
 
 ```bash
 CIT_API_URL=http://localhost:8000 streamlit run frontend/app.py
+```
+
+## Run With Docker
+
+Docker Compose can start both the FastAPI backend and Streamlit frontend with one command.
+
+Quick mock demo, no GPU or model download:
+
+```bash
+docker compose up --build api frontend
+```
+
+Fine-tuned Qwen demo, using the saved LoRA adapter:
+
+```bash
+docker compose --profile gpu up --build api-gpu frontend-gpu
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+Stop all Docker services:
+
+```bash
+docker compose down
+```
+
+The GPU command starts:
+
+- FastAPI backend at `http://localhost:8000`
+- Streamlit frontend at `http://localhost:8501`
+- `Qwen/Qwen2.5-Coder-3B-Instruct`
+- LoRA adapter loading from `models/qwen25-coder-3b-interview-lora`
+
+Before using GPU mode, make sure the LoRA adapter exists locally:
+
+```text
+models/qwen25-coder-3b-interview-lora
+```
+
+GPU mode requires NVIDIA Container Toolkit and Docker GPU support. It mounts:
+
+- `./models:/app/models:ro`
+- a Docker volume for Hugging Face cache
+
+Check the backend:
+
+```bash
+curl http://localhost:8000/health
 ```
 
 ## Use Local Qwen Inference
@@ -243,7 +296,6 @@ python3 -m pytest
 
 ## Current Limitations
 
-- QLoRA fine-tuning is not implemented yet.
 - Safe code execution is not implemented yet.
 - The frontend is a functional demo, not a polished production UI.
-- The seed dataset is intentionally small and should be expanded before fine-tuning.
+- Docker GPU mode depends on local NVIDIA Container Toolkit support.

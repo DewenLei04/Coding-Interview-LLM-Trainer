@@ -1,0 +1,82 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: dev
+    environment:
+      CIT_BACKEND: mock
+      CIT_MOCK_MODEL_NAME: mock-qwen-coder
+    ports:
+      - "8000:8000"
+    command: >
+      python -m uvicorn coding_interview_trainer.api.main:app
+      --host 0.0.0.0
+      --port 8000
+
+  frontend:
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: dev
+    environment:
+      CIT_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    command: >
+      python -m streamlit run frontend/app.py
+      --server.address 0.0.0.0
+      --server.port 8501
+      --server.headless true
+      --browser.gatherUsageStats false
+
+  api-gpu:
+    profiles:
+      - gpu
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: train
+    environment:
+      HF_HUB_DISABLE_XET: "1"
+      HF_HOME: /cache/huggingface
+      CIT_BACKEND: transformers
+      CIT_MODEL_NAME: Qwen/Qwen2.5-Coder-3B-Instruct
+      CIT_ADAPTER_PATH: /app/models/qwen25-coder-3b-interview-lora
+      CIT_LOAD_IN_4BIT: "true"
+      CIT_MAX_NEW_TOKENS: "700"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - hf-cache:/cache/huggingface
+    gpus: all
+    command: >
+      python -m uvicorn coding_interview_trainer.api.main:app
+      --host 0.0.0.0
+      --port 8000
+
+  frontend-gpu:
+    profiles:
+      - gpu
+    build:
+      context: .
+      args:
+        INSTALL_EXTRAS: dev
+    environment:
+      CIT_API_URL: http://api-gpu:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api-gpu
+    command: >
+      python -m streamlit run frontend/app.py
+      --server.address 0.0.0.0
+      --server.port 8501
+      --server.headless true
+      --browser.gatherUsageStats false
+
+volumes:
+  hf-cache:
